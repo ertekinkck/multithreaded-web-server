@@ -156,6 +156,13 @@ void requestHandle(int fd)
    char filename[MAXLINE], cgiargs[MAXLINE];
    rio_t rio;
 
+   printf("thread spawned\n");
+   for(int i = 0; i < 10; i++){
+      sleep(1);
+      printf("Second: %d\n", i+1);
+      fflush(stdout);
+   }
+
    Rio_readinitb(&rio, fd);
    Rio_readlineb(&rio, buf, MAXLINE);
    sscanf(buf, "%s %s %s", method, uri, version);
