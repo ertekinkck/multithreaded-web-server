@@ -5,11 +5,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define BUFFER_SIZE 10
 
 pthread_mutex_t mutex;
 sem_t empty, full;
-int buffer[BUFFER_SIZE];
+int *buffer;
+int buffer_size = 0;
 int buffer_index_in = 0;
 int buffer_index_out = 0;
 
@@ -28,7 +28,7 @@ void push_to_buffer(int connfd) {
     pthread_mutex_lock(&mutex);
 
     buffer[buffer_index_in] = connfd;
-    buffer_index_in = (buffer_index_in + 1) % BUFFER_SIZE;
+    buffer_index_in = (buffer_index_in + 1) % buffer_size;
 
     pthread_mutex_unlock(&mutex);
     sem_post(&full);
@@ -39,7 +39,7 @@ int pop_from_buffer() {
     pthread_mutex_lock(&mutex);
 
     int connfd = buffer[buffer_index_out];
-    buffer_index_out = (buffer_index_out + 1) % BUFFER_SIZE;
+    buffer_index_out = (buffer_index_out + 1) % buffer_size;
 
     pthread_mutex_unlock(&mutex);
     sem_post(&empty);
@@ -57,14 +57,20 @@ void* client_handler(void* arg) {
 }
 
 int main(int argc, char *argv[]) {
-    int port, num_threads, buffer_size;
+    int port, num_threads;
     pthread_t *thread_pool;
 
     getargs(&port, &num_threads, &buffer_size, argc, argv);
 
     pthread_mutex_init(&mutex, NULL);
-    sem_init(&empty, 0, BUFFER_SIZE);
+    sem_init(&empty, 0, buffer_size);
     sem_init(&full, 0, 0);
+    
+    buffer = (int *)malloc(sizeof(int) * buffer_size);
+    if (buffer == NULL) {
+        fprintf(stderr, "Error: malloc failed\n");
+        exit(1);
+    }
 
     thread_pool = (pthread_t *)malloc(sizeof(pthread_t) * num_threads);
     if (thread_pool == NULL) {
